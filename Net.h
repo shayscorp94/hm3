@@ -3,6 +3,8 @@
  *
  *  Created on: Mar 13, 2019
  *      Author: oliv
+ *
+ *      ALL INDEXES FOR NODES AND LAYERS START AT 0
  */
 
 #ifndef NET_H_
@@ -15,9 +17,10 @@ class Net {
 public:
 	Net();
 	Net(const std::vector<int> & layers); /* input a vector with the sizes of the layers, starting with the largest layer : l1 , l2 , lk */
-	double & c(const int & layer, const int & start, const int & end); /* gives access to a coefficient, starting from the layer given as input, enables it to be modified */
-	double & v(const int & layer, const int & i); /* gives access to a the node value from the layer given as input, enables it to be modified */
+	double & c(const int & layer, const int & start, const int & end); /* gives access to a coefficient, starting from the layer given as input, enables it to be modified ,DOES NOT UPDATE THE NODE VALUES  */
+	double & v(const int & layer, const int & i); /* gives access to a the node value from the layer given as input, enables it to be modified, DOES NOT UPDATE THE NODE VALUES */
 	arma::vec & get_coeffs(); /* returns reference to the whole vector of coefficients to be used for the gradient descent */
+	void update(); /* updates node values given the current coeffs and node values of layer 0 */
 	void print();
 	virtual ~Net();
 private:

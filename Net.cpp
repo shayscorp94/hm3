@@ -71,7 +71,18 @@ void Net::print() {
 	}
 }
 
-
+void Net::update() {
+	for(int l = 1 ; l != layers.size() ; l++){
+		for(int end = 0 ; end != layers[l] ; ++end){
+			v(l,end) = 0;
+			for(int start = 0 ; start != layers[l-1] ; ++start){
+				v(l,end) += c(l-1,start,end)*v(l-1,start);
+				cout << v(l,end) << endl;
+			}
+			v(l,end) = v(l,end)>0 ? v(l,end):0; /* max(v,0) */
+		}
+	}
+}
 
 Net::~Net() {
 	// TODO Auto-generated destructor stub
