@@ -9,11 +9,16 @@
 #include <iostream>
 #include <armadillo>
 
+#include "Net.h"
+
 using namespace std;
 
 
 int main(){
-	arma::mat M;
+	Net N = Net(vector<int>{2,3,4});
+	N.v(1,0)=2;
+	N.c(0,0,0) = 4;
+	N.print();
 	return 0;
 }
 
