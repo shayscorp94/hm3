@@ -12,6 +12,7 @@
 #include "Net.h"
 
 using namespace std;
+using namespace arma;
 
 double relu(const double & d){
 	return d > 0 ? d : 0;
@@ -43,6 +44,25 @@ Net grad(const Net & N,const double & target){
 	}
 	return G;
 }
+//
+//arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & eth,const double & eps){
+//	mat v{v0};
+//	mat g = grad(v);
+//	const int maxIt{100};
+//	for(int i = 0 ; i != maxIt ; ++i ){
+//		if(norm(g) < eps){
+//			cout << "numit" << i <<' ' << norm(g) <<'\n';
+//			return v;
+//		}
+//		else{
+//			v = v-eth*g;
+//			g = grad(v);
+//		}
+//	}
+//	cout << "reached max it" << norm(g) << '\n';
+//	return v;
+//
+//}
 
 
 int main(){
@@ -53,14 +73,25 @@ int main(){
 		N.v(0,s) = s; /* node 0 of layer 0 */
 	}
 
-	N.print();
 
 	N.update();
-	cout << "\n\nAfter update\n\n";
+	cout <<"before descent" <<N.v(3,0)<<endl;
+	for(int i = 0 ; i != 100 ; ++i){
+	Net G = grad(N,0);
+	N.get_coeffs() -= 0.0001*G.get_coeffs();
+	N.update();
+	cout <<N.v(3,0)<<endl;
+
+	}
 	N.print();
 
-	Net G = grad(N,30.5);
-	G.print();
+
+
+
+
+//	std::function<arma::mat(const arma::mat &)> g = [N](const arma::mat & v){};
+
+
 	return 0;
 }
 
