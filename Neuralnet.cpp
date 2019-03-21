@@ -50,7 +50,7 @@ int main(){
 	Net N = Net(vector<int>{8,4,2,1});
 //	Set nodes value for input layer
 	for(int s = 0 ; s != 8 ; s++){
-		N.v(0,s) = rand()%10; /* node 0 of layer 0 */
+		N.v(0,s) = s; /* node 0 of layer 0 */
 	}
 
 	N.print();
@@ -59,7 +59,7 @@ int main(){
 	cout << "\n\nAfter update\n\n";
 	N.print();
 
-	Net G = grad(N,35.519);
+	Net G = grad(N,30.5);
 	G.print();
 	return 0;
 }
