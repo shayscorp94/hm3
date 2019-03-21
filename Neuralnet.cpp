@@ -13,25 +13,57 @@
 
 using namespace std;
 
+double relu(const double & d){
+	return d > 0 ? d : 0;
+}
+
+Net grad(const Net & N,const double & target){
+	const vector<int> & layers = N.L();
+	const int n_layers = layers.size();
+	Net G{layers};
+//	Deal with end node if net is not empty
+	if(n_layers > 0){
+		G.v(n_layers-1,0) = 2*( relu(  N.v(n_layers-1,0)  ) -target);
+	}
+
+	for(int l = layers.size()-2 ; l != -1 ; --l){
+//		Coeffs of G store partial diff with respect to that coeff
+		for(int start = 0 ; start != layers[l] ; ++start){
+			for(int end = 0; end != layers[l+1]; ++end){
+				G.c(l,start,end) = N.v(l,start)*G.v(l+1,end);
+			}
+		}
+//		Nodes of G store partial diff with respect to that node value
+		for(int start = 0 ; start != layers[l] ; ++start){
+			G.v(l,start) = 0;
+			for(int end = 0; end != layers[l+1]; ++end){
+				G.v(l,start) += N.c(l,start,end)*G.v(l+1,end);
+			}
+		}
+	}
+	return G;
+}
+
 
 int main(){
 //	Defines fully connected neural net : layer0 : 2 nodes / layer 1 : 1 node
-	Net N = Net(vector<int>{4,2,1});
+	Net N = Net(vector<int>{8,4,2,1});
 //	Set nodes value for input layer
-	N.v(0,0) = 2; /* node 0 of layer 0 */
-	N.v(0,1) = 4;/* node 1 of layer 0 */
-	N.v(0,2) = 3;/* node 2 of layer 0 */
-	N.v(0,3) = 1;/* node 3 of layer 0 */
-
-//  Set coefficients values between layers
-//	by default set random normal
-	N.c(0,2,1) = 1; /* coeff from layer0,node2 to the node1 of the next layer (layer1)*/
+	for(int s = 0 ; s != 8 ; s++){
+		N.v(0,s) = rand()%10; /* node 0 of layer 0 */
+	}
 
 	N.print();
 
 	N.update();
 	cout << "\n\nAfter update\n\n";
 	N.print();
+
+	Net G = grad(N,35.519);
+	G.print();
 	return 0;
 }
+
+
+
 

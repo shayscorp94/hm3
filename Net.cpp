@@ -40,7 +40,23 @@ double& Net::c(const int& layer_num, const int& start, const int& end) {
 	return coeffs(cumsum+start*layers[layer_num+1]+end);
 }
 
+double Net::c(const int& layer_num, const int& start, const int& end) const{
+	int cumsum{0};
+	for(int i = 1; i !=layer_num+1;++i){
+		cumsum += layers[i]*layers[i-1];
+	}
+	return coeffs(cumsum+start*layers[layer_num+1]+end);
+}
+
 double& Net::v(const int& layer_num, const int& i) {
+	int cumsum{0};
+	for(int i = 0; i !=layer_num;++i){
+		cumsum += layers[i];
+	}
+	return nodevals(cumsum+i);
+}
+
+double Net::v(const int& layer_num, const int& i) const {
 	int cumsum{0};
 	for(int i = 0; i !=layer_num;++i){
 		cumsum += layers[i];
@@ -79,7 +95,7 @@ void Net::update() {
 				v(l,end) += c(l-1,start,end)*v(l-1,start);
 				cout << v(l,end) << endl;
 			}
-			v(l,end) = v(l,end)>0 ? v(l,end):0; /* max(v,0) */
+//			v(l,end) = v(l,end)>0 ? v(l,end):0; /* max(v,0) */
 		}
 	}
 }
