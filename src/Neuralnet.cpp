@@ -77,7 +77,7 @@ arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::
 int main(){
 //	Data processing
 
-	const int nassets{487};
+	const int nassets{10};
 	const int nlines{756};
 	const int end_train{10};
 	dataframe Data{756,nassets,"cleanIndex.csv"};
@@ -94,8 +94,8 @@ int main(){
 
 
 	std::function<arma::vec(const arma::vec & )> g = [Train](const arma::vec & v){
-	Net N = Net(vector<int>{500,250,125,1});
-	Net G = Net(vector<int>{500,250,125,1}); /* we do not care of the target we just want the structure*/
+	Net N = Net(vector<int>{10,5,2,1});
+	Net G = Net(vector<int>{10,5,2,1}); /* we do not care of the target we just want the structure*/
 	vec res_grad = vec(G.get_coeffs().n_rows,fill::zeros);
 	N.get_coeffs() = v;
 	for(int d = 0 ; d != end_train+1-10 ; ++d){
@@ -106,10 +106,10 @@ int main(){
 //			cout << s<<endl;
 
 		}
-		for(int s = nassets; s != 500 ; ++s){
-			N.v(0,s) = 0;
-//			cout << N.v(0,s)<<endl;
-		}
+//		for(int s = nassets; s != 500 ; ++s){
+//			N.v(0,s) = 0;
+////			cout << N.v(0,s)<<endl;
+//		}
 
 		N.update();
 		G = grad(N,Train(0,d+10));
@@ -121,7 +121,7 @@ int main(){
 	};
 	cout <<1 <<endl;
 
-	vec v0 = vec(500*250+250*125+125,fill::zeros);
+	vec v0 = vec(10*5+5*2+2,fill::zeros);
 	cout << g(v0);
 	cout<<1<<endl;
 
