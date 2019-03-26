@@ -17,17 +17,17 @@ using namespace std;
 using namespace arma;
 using namespace vSpace;
 
-double relu(const double & d){
+inline double relu(const double & d){
 	return d > 0 ? d : 0;
 }
 double Drelu(const double & d){
 	return d > 0 ? 1 : 0;
 }
 
-Net grad(const Net & N,const double & target){
+
+inline void grad(const Net & N,Net & G,const double & target){
 	const vector<int> & layers = N.L();
 	const int n_layers = layers.size();
-	Net G{layers};
 //	Deal with end node if net is not empty
 	if(n_layers > 0){
 //		G.v(n_layers-1,0) = 2*Drelu( N.v(n_layers-1,0) )*( relu(  N.v(n_layers-1,0)  ) -target);
@@ -51,10 +51,9 @@ Net grad(const Net & N,const double & target){
 			}
 		}
 	}
-	return G;
 }
 
-arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & etha,const double & eps){
+inline arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & etha,const double & eps){
 	mat v{v0};
 	mat g = grad(v);
 //	double old_n = norm(g);
@@ -157,7 +156,7 @@ int main(){
 			N.v(0,s) = Train(d,s);
 		}
 		N.update();
-		G = grad(N,Train(d+10,0));
+		grad(N,G,Train(d+10,0));
 		res_grad += G.get_coeffs();
 	}
 //	cout << N.v(3,0)<<endl;
