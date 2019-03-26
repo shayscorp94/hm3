@@ -57,9 +57,9 @@ Net grad(const Net & N,const double & target){
 arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & etha,const double & eps){
 	mat v{v0};
 	mat g = grad(v);
-	double old_n = norm(g);
+//	double old_n = norm(g);
 	double eth = etha;
-	double temp = old_n;
+//	double temp = old_n;
 	const int maxIt{1000};
 	for(int i = 0 ; i != maxIt ; ++i ){
 		if(norm(g) < eps){
@@ -69,13 +69,13 @@ arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::
 		else{
 			v = v-eth*g;
 			g = grad(v);
-			temp = norm(g);
+//			temp = norm(g);
 //			if(temp > old_n){
 //				eth /= 10.;
 //				cout << 'down_step'<<endl;
 //			}
-			old_n = temp;
-			cout << "grad" << norm(g) << endl;
+//			old_n = temp;
+//			cout << "grad" << norm(g) << endl;
 		}
 	}
 	cout << "reached max it" << norm(g) << '\n';
@@ -120,7 +120,7 @@ arma::mat acc_descent(const arma::mat& v0, std::function<arma::mat(const arma::m
 			x = x*(1+s)-eth*g*(1+s)-s*y_old;
 			g = grad(x);
 			y_old = y;
-			cout << norm(g)<<endl;
+//			cout << norm(g)<<endl;
 		}
 	}
 	cout << "reached max it" << norm(g) << '\n';
@@ -160,7 +160,7 @@ int main(){
 		G = grad(N,Train(d+10,0));
 		res_grad += G.get_coeffs();
 	}
-	cout << N.v(3,0)<<endl;
+//	cout << N.v(3,0)<<endl;
 	return res_grad/(end_train+1-10);
 	};
 	Net T = Net(vector<int>{500,250,125,1}); /* we do not care of the target we just want the structure*/
@@ -171,7 +171,7 @@ int main(){
 	auto finish = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> elapsed = finish - start;
 
-	cout << N.v(3,0)<<' '<< Train(10,0)<<' '<< elapsed.count();
+	cout << N.v(3,0)- Train(10,0)<<' '<< elapsed.count();
 	return 0;
 }
 
