@@ -53,13 +53,13 @@ inline void grad(const Net & N,Net & G,const double & target){
 	}
 }
 
-inline arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & etha,const double & eps){
+arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & etha,const double & eps){
 	mat v{v0};
 	mat g = grad(v);
 //	double old_n = norm(g);
 	double eth = etha;
 //	double temp = old_n;
-	const int maxIt{1000};
+	const int maxIt{300};
 	for(int i = 0 ; i != maxIt ; ++i ){
 		if(norm(g) < eps){
 			cout << "numit" << i <<' ' << norm(g) <<'\n';
@@ -132,7 +132,7 @@ arma::mat acc_descent(const arma::mat& v0, std::function<arma::mat(const arma::m
 int main(){
 //	Data processing
 
-	const int nassets{10};
+	const int nassets{487};
 	const int nlines{756};
 	const double end_train{10};
 	dataframe Data{756,nassets,"cleanIndex.csv"};
@@ -142,8 +142,8 @@ int main(){
 
 //	For layer 0 we will add 0s because we only have 486 assets.
 
-	Net N = Net(vector<int>{500,250,125,1});
-	Net G = Net(vector<int>{500,250,125,1}); /* we do not care of the target we just want the structure*/
+	Net N = Net(vector<int>{487,250,125,1});
+	Net G = Net(vector<int>{487,250,125,1}); /* we do not care of the target we just want the structure*/
 	vec res_grad = vec(G.get_coeffs().n_rows,fill::zeros);
 
 	std::function<arma::mat(const arma::mat & )> g = [&Train,&N,&G,&res_grad,&end_train](const arma::mat & v){
@@ -162,15 +162,14 @@ int main(){
 //	cout << N.v(3,0)<<endl;
 	return res_grad/(end_train+1-10);
 	};
-	Net T = Net(vector<int>{500,250,125,1}); /* we do not care of the target we just want the structure*/
 
-	vec v0 = vec(T.get_coeffs().n_rows,fill::randn);
+	vec v0 = vec(N.get_coeffs().n_rows,fill::randn);
 	auto start = std::chrono::high_resolution_clock::now();
-	grad_descent(v0,g,0.0000001,0.01);
+	grad_descent(v0,g,0.00000000001,0.01);
 	auto finish = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> elapsed = finish - start;
 
-	cout << N.v(3,0)- Train(10,0)<<' '<< elapsed.count();
+	cout << N.v(3,0) << ' '<< Train(10,0)<<' '<< elapsed.count();
 	return 0;
 }
 
