@@ -60,7 +60,7 @@ arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::
 	double old_n = norm(g);
 	double eth = etha;
 	double temp = old_n;
-	const int maxIt{10000};
+	const int maxIt{1000};
 	for(int i = 0 ; i != maxIt ; ++i ){
 		if(norm(g) < eps){
 			cout << "numit" << i <<' ' << norm(g) <<'\n';
@@ -70,11 +70,12 @@ arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::
 			v = v-eth*g;
 			g = grad(v);
 			temp = norm(g);
-			if(temp > old_n){
-				eth /= 10.;
-			}
+//			if(temp > old_n){
+//				eth /= 10.;
+//				cout << 'down_step'<<endl;
+//			}
 			old_n = temp;
-//			cout << norm(g) << endl;
+			cout << "grad" << norm(g) << endl;
 		}
 	}
 	cout << "reached max it" << norm(g) << '\n';
@@ -132,7 +133,7 @@ arma::mat acc_descent(const arma::mat& v0, std::function<arma::mat(const arma::m
 int main(){
 //	Data processing
 
-	const int nassets{487};
+	const int nassets{10};
 	const int nlines{756};
 	const double end_train{10};
 	dataframe Data{756,nassets,"cleanIndex.csv"};
@@ -142,8 +143,8 @@ int main(){
 
 //	For layer 0 we will add 0s because we only have 486 assets.
 
-	Net N = Net(vector<int>{1000,500,125,1});
-	Net G = Net(vector<int>{1000,500,125,1}); /* we do not care of the target we just want the structure*/
+	Net N = Net(vector<int>{500,250,125,1});
+	Net G = Net(vector<int>{500,250,125,1}); /* we do not care of the target we just want the structure*/
 	vec res_grad = vec(G.get_coeffs().n_rows,fill::zeros);
 
 	std::function<arma::mat(const arma::mat & )> g = [&Train,&N,&G,&res_grad,&end_train](const arma::mat & v){
@@ -159,19 +160,18 @@ int main(){
 		G = grad(N,Train(d+10,0));
 		res_grad += G.get_coeffs();
 	}
-//	cout << (end_train+1-10)<<endl;
+	cout << N.v(3,0)<<endl;
 	return res_grad/(end_train+1-10);
 	};
-	Net T = Net(vector<int>{1000,500,125,1}); /* we do not care of the target we just want the structure*/
+	Net T = Net(vector<int>{500,250,125,1}); /* we do not care of the target we just want the structure*/
 
 	vec v0 = vec(T.get_coeffs().n_rows,fill::randn);
-
 	auto start = std::chrono::high_resolution_clock::now();
-	grad_descent(v0,g,0.000000001,0.01);
+	grad_descent(v0,g,0.0000001,0.01);
 	auto finish = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> elapsed = finish - start;
 
-	cout << N.v(3,0)<< ' ' << Train(10,0)<<' '<< elapsed.count();
+	cout << N.v(3,0)<<' '<< Train(10,0)<<' '<< elapsed.count();
 	return 0;
 }
 
