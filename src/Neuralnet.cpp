@@ -163,14 +163,7 @@ int main(){
 		cout << N.v(3,0) << ' '<< Train(10+d,0)<<' ';
 	}
 	cout << "time" << elapsed.count();
-
-
 	return 0;
 }
-
-
-
-
-
 
 
