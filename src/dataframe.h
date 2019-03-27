@@ -10,6 +10,7 @@
 #include <armadillo>
 #include <iostream>
 #include <vector>
+#include <iomanip>      // std::setprecision
 
 namespace vSpace {
 

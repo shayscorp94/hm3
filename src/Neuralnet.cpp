@@ -59,7 +59,7 @@ arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::
 //	double old_n = norm(g);
 	double eth = etha;
 //	double temp = old_n;
-	const int maxIt{300};
+	const int maxIt{50000};
 	for(int i = 0 ; i != maxIt ; ++i ){
 		if(norm(g) < eps){
 			cout << "numit" << i <<' ' << norm(g) <<'\n';
@@ -68,12 +68,6 @@ arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::
 		else{
 			v = v-eth*g;
 			g = grad(v);
-//			temp = norm(g);
-//			if(temp > old_n){
-//				eth /= 10.;
-//				cout << 'down_step'<<endl;
-//			}
-//			old_n = temp;
 //			cout << "grad" << norm(g) << endl;
 		}
 	}
@@ -81,24 +75,6 @@ arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::
 	return v;
 }
 
-//arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & eth,const double & eps){
-//	mat v{v0};
-//	mat g = grad(v);
-//	const int maxIt{1000};
-//	for(int i = 0 ; i != maxIt ; ++i ){
-//		if(norm(g) < eps){
-//			cout << "numit" << i <<' ' << norm(g) <<'\n';
-//			return v;
-//		}
-//		else{
-//			v = v-eth*g;
-//			g = grad(v);
-////			cout << norm(g) << endl;
-//		}
-//	}
-//	cout << "reached max it" << norm(g) << '\n';
-//	return v;
-//}
 
 
 arma::mat acc_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & eth,const double & eps){
@@ -156,20 +132,39 @@ int main(){
 			N.v(0,s) = Train(d,s);
 		}
 		N.update();
+//		cout <<N.v(3,0)<<endl;
 		grad(N,G,Train(d+10,0));
 		res_grad += G.get_coeffs();
 	}
 //	cout << N.v(3,0)<<endl;
 	return res_grad/(end_train+1-10);
 	};
+//	dataframe dv0(N.get_coeffs().n_rows,1,"v1.csv",false);
+//	vec v0 = dv0.getData();
+	vec v0(N.get_coeffs().n_rows,fill::randn);
 
-	vec v0 = vec(N.get_coeffs().n_rows,fill::randn);
 	auto start = std::chrono::high_resolution_clock::now();
-	grad_descent(v0,g,0.00000000001,0.01);
+	vec vinf = grad_descent(v0,g,0.00000000001,0.01);
 	auto finish = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> elapsed = finish - start;
 
-	cout << N.v(3,0) << ' '<< Train(10,0)<<' '<< elapsed.count();
+	dataframe initVec{vinf};
+	initVec.write_csv("v0.csv");
+
+	cout << norm( v0 - vinf)/v0.n_rows <<endl;
+
+	for(int d = 0 ; d != end_train+1-10 ; ++d){
+//		For each available date, we calculate a gradient and then we average
+		N.v(0,0) = 0;
+		for(int s = 1 /* do not use the current index price*/ ; s != nassets ; ++s){
+			N.v(0,s) = Train(d,s);
+		}
+		N.update();
+		cout << N.v(3,0) << ' '<< Train(10+d,0)<<' ';
+	}
+	cout << "time" << elapsed.count();
+
+
 	return 0;
 }
 

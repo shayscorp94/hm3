@@ -7,6 +7,7 @@
 
 #include "dataframe.h"
 
+
 using namespace arma;
 using namespace std;
 namespace vSpace {
@@ -115,9 +116,9 @@ void dataframe::write_csv(const std::string& filename) {
 		}
 	    for(int i = 0 ; i != n ; ++i){
 	    	for(int j = 0 ; j != m-1 ; ++j){
-	    		myfile << data(i,j) <<',';
+	    		myfile <<std::setprecision(20)<< data(i,j) <<',';
 	    	}
-	    	myfile << data(i,m-1)<<'\n';
+	    	myfile <<std::setprecision(20)<< data(i,m-1)<<'\n';
 	    }
 	    myfile.close();
 	  }

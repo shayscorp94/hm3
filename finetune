@@ -22,7 +22,42 @@
 using date 0 to predict date 10
 		numit275 0.00701368
 		147.05 147.05 2.23001
+using date 0 and 1 
+		300 it :
+			reached max it639809
+			0 147.05 3.99276
+		1000 it :
+			reached max it639796
+			0 147.05 12.5679
+		10,000 it :
+			reached max it639638
+			0 147.05 138.468
 
 3.47 3.48
 
 3.66 3.78 4.167
+
+
+
+For dates 0 and 1 / starting from v0 and using 0.00000000001 and 10,000 it
+reached max it639638
+4.17707e-07
+295.468 147.05 117.9510 148 117.951
+
+reached max it639488 (starting from v1)
+4.17672e-07
+295.468 147.05 113.7430 148 113.743
+reached max it639363
+4.17582e-07
+295.468 147.05 121.3370 148 121.337
+reached max it639265
+4.17509e-07
+295.469 147.05 113.4290 148 113.429
+reached max it639192
+4.17453e-07
+295.469 147.05 115.3650 148 115.365
+reached max it639145
+4.17414e-07
+295.469 147.05 115.1310 148 115.131
+
+continuing but with 50000 it
