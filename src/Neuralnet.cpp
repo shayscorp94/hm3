@@ -77,7 +77,7 @@ arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::
 
 
 
-arma::mat acc_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & eth,const double & eps){
+arma::mat acc_descent(const arma::mat& v0 , std::function<arma::mat(const arma::mat &)> & grad,const double & eth,const double & eps){
 	mat x{v0};
 	mat y{v0};
 	mat y_old{v0};
