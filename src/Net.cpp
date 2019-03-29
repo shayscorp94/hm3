@@ -10,8 +10,8 @@ using namespace std;
 using namespace arma;
 
 
-Net::Net(const std::vector<int> & layers, std::vector<double (*)(const double&)> fs, std::vector<double (*)(const double &)> ds )
-:layers(layers),fs(fs),ds(ds)
+Net::Net(const std::vector<int> & layers, std::vector<double (*)(const double&)> fs)
+:layers(layers),fs(fs)
 {
 	int n_coeffs{0};
 	int n_nodes{0};
