@@ -23,31 +23,26 @@ using namespace vSpace;
 inline double relu(const double & d){
 	return d > 0 ? d : 0;
 }
-
 inline double Lrelu(const double & d){
 	return d > 0 ? d : 0.01*d;
 }
-
 inline double DLrelu(const double & d){
 	return d > 0 ? 1 : 0.01;
 }
-
 inline double I(const double & t){
 	return t;
 }
-
 inline double One(const double & t){
 	return 1;
 }
-
 inline double Drelu(const double & d){
 	return d > 0 ? 1 : 0;
 }
-
 inline double sm(const double & t){
 	return (t>10)?t:log(1+exp(t));
 }
 inline double Dsm(const double & t){
+
 	return (t>100)?1:exp(t)/(1+exp(t));
 }
 
@@ -86,13 +81,54 @@ static const double end_train{11};
 static dataframe Data{756,nassets,"cleanIndex.csv"};
 static mat Train = Data.getData().rows(0,end_train);
 
-arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & etha,const double & eps){
+
+vector<double (*)(const double &)> fs{I,Lrelu,Lrelu,Lrelu};
+vector<double (*)(const double &)> ds{One,DLrelu,DLrelu,DLrelu};
+vector<Net> nets;
+Net G = Net(vector<int>{487,250,125,1},ds); /* we do not care of the target we just want the structure*/
+vec res_grad = vec(G.get_coeffs().n_rows,fill::zeros);
+
+arma::mat g(const arma::mat & v){
+res_grad.fill(0.);
+for(int d = 0 ; d != end_train+1-10 ; ++d){
+	nets[d].get_coeffs() = v;
+	nets[d].update();
+	grad(nets[d],G,Train(d+10,0));
+	res_grad += G.get_coeffs();
+}
+return res_grad/(end_train+1-10);
+};
+
+
+//arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & etha,const double & eps){
+//	mat v{v0};
+//	mat g = grad(v);
+////	double old_n = norm(g);
+//	double eth = etha;
+////	double temp = old_n;
+//	const int maxIt{300};
+//	for(int i = 0 ; i != maxIt ; ++i ){
+//		if(norm(g) < eps){
+//			cout << "numit" << i <<' ' << norm(g) <<'\n';
+//			return v;
+//		}
+//		else{
+//			v = v-eth*g;
+//			g = grad(v);
+////			cout << "grad" << norm(g) << endl;
+//		}
+//	}
+//	cout << "reached max it" << norm(g) << '\n';
+//	return v;
+//}
+
+arma::mat grad_descent(const arma::mat & v0, arma::mat (& grad) (const arma::mat &), const double & etha,const double & eps){
 	mat v{v0};
 	mat g = grad(v);
 //	double old_n = norm(g);
 	double eth = etha;
 //	double temp = old_n;
-	const int maxIt{100000};
+	const int maxIt{300};
 	for(int i = 0 ; i != maxIt ; ++i ){
 		if(norm(g) < eps){
 			cout << "numit" << i <<' ' << norm(g) <<'\n';
@@ -107,6 +143,7 @@ arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::
 	cout << "reached max it" << norm(g) << '\n';
 	return v;
 }
+
 
 arma::mat acc_descent(const arma::mat& v0 , std::function<arma::mat(const arma::mat &)> & grad,const double & eth,const double & eps){
 	mat x{v0};
@@ -155,7 +192,6 @@ arma::mat stochastic_descent(const arma::mat& v0, std::function<arma::mat(const 
 			return v;
 		}
 		else{
-
 			lmin = 0;
 			min = -1 ;
 			lin = 0.1;
@@ -180,7 +216,7 @@ arma::mat stochastic_descent(const arma::mat& v0, std::function<arma::mat(const 
 				lin *= 10;
 			}
 			eth = lmin*eth;
-			cout << lmin <<endl;
+//			cout << lmin <<endl;
 			v = v-eth*g;
 
 
@@ -206,100 +242,47 @@ int main(){
 
 //	For layer 0 we will add 0s because we only have 486 assets.
 
-	vector<double (*)(const double &)> fs{I,Lrelu,Lrelu,Lrelu};
-	vector<double (*)(const double &)> ds{One,DLrelu,DLrelu,DLrelu};
 
 
-	Net N = Net(vector<int>{487,250,125,1},fs);
-	Net G = Net(vector<int>{487,250,125,1},ds); /* we do not care of the target we just want the structure*/
-	vec res_grad = vec(G.get_coeffs().n_rows,fill::zeros);
+//	Net N = Net(vector<int>{487,250,125,1},fs);
 
-
-
-
-	std::function<arma::mat(const arma::mat & )> g = [&N,&G,&res_grad](const arma::mat & v){
-	N.get_coeffs() = v;
-	res_grad.fill(0.);
+	nets.reserve(::end_train+1-10);
 	for(int d = 0 ; d != ::end_train+1-10 ; ++d){
-//		For each available date, we calculate a gradient and then we average
-		N.n(0,0) = 0;
+	//		For each available date, we calculate a gradient and then we average
+		nets[d] = Net(vector<int>{487,250,125,1},fs);
+		nets[d].n(0,0) = 0;
 		for(int s = 1 /* do not use the current index price*/ ; s != nassets ; ++s){
-			N.n(0,s) = Train(d,s);
+			nets[d].n(0,s) = Train(d,s);
 		}
-		N.update();
-		grad(N,G,::Train(d+10,0));
-		res_grad += G.get_coeffs();
+		nets[d].update();
 	}
-//	cout << N.v(3,0)<<endl;
-	return res_grad/(::end_train+1-10);
-	};
 
-
-//	vector<double (*)(const double &)> fs{I,sm,sm,sm};
-//	vector<double (*)(const double &)> ds{I,Dsm,Dsm,Dsm};
-//
-//
-//	Net N = Net(vector<int>{487,500,125,1},fs);
-//	Net G = Net(vector<int>{487,500,125,1},ds); /* we do not care of the target we just want the structure*/
-//	vec res_grad = vec(G.get_coeffs().n_rows,fill::zeros);
-//
-//
-//
-//	N.n(0,0) = 0;
-//	for(int s = 1 ; s != 487 ; ++s){
-//		N.n(0,s) = Train(0,s);
+//	std::function<arma::mat(const arma::mat & )> g = [&](const arma::mat & v){
+//	::res_grad.fill(0.);
+//	for(int d = 0 ; d != ::end_train+1-10 ; ++d){
+//		::nets[d].get_coeffs() = v;
+//		::nets[d].update();
+//		grad(::nets[d],::G,::Train(d+10,0));
+//		::res_grad += ::G.get_coeffs();
 //	}
-//	N.update();
-//
-//	N.update();
-//
-//	Net check_grad = Net(vector<int>{487,500,125,1},fs);
-//	const double target{10.};
-//	const double v = pow(N.v(N.L().size()-1,0)-target,2);
-//	double vbis{0};
-//	const double eps{0.00000001};
-//
-//
-//	for(int l = 0 ; l != N.L().size() -1 ; ++l ){
-//		cout << l<<endl;
-//		for(int s = 0 ; s != N.L()[l] ; ++s ){
-//			for(int e = 0 ; e != N.L()[l+1]; ++e){
-//				N.c(l,s,e) += eps; /* node 0 of layer 0 */
-//				N.update();
-//				vbis = pow(N.v(N.L().size()-1,0)-target,2);
-//				N.c(l,s,e) -= eps; /* node 0 of layer 0 */
-//				N.update();
-//				check_grad.c(l,s,e) = (vbis-pow(N.v(N.L().size()-1,0)-target,2))/eps;
-//			}
-//		}
-//	}
-////
-//	grad(N,G,target);
-////
-////	G.print();
-//	cout << G.get_coeffs()-check_grad.get_coeffs();
+//	return ::res_grad/(::end_train+1-10);
+//	};
 
 
 
-	std::function<arma::mat(const arma::mat &, mt19937 & )> g_st = [&N,&G,&res_grad](const arma::mat & v, mt19937 & g){
+	std::function<arma::mat(const arma::mat &, mt19937 & )> g_st = [&](const arma::mat & v, mt19937 & g){
 	uniform_int_distribution<int> Dist(0,::end_train-10);
-	const int batchSize{1};
-
-	N.get_coeffs() = v;
+	const int batchSize{2};
 	res_grad.fill(0.);
 	int d{0};
 	for(int i = 0 ; i!= batchSize ; ++i){
 		d = Dist(g);
-//		For each available date, we calculate a gradient and then we average
-		N.n(0,0) = 0;
-		for(int s = 1 /* do not use the current index price*/ ; s != nassets ; ++s){
-			N.n(0,s) = ::Train(d,s);
-		}
-		N.update();
-		grad(N,G,::Train(d+10,0));
+//		cout << d<<endl;
+		::nets[d].get_coeffs() = v;
+		nets[d].update();
+		grad(nets[d],G,::Train(d+10,0));
 		res_grad += G.get_coeffs();
 	}
-//	cout << N.v(3,0)<<endl;
 	return res_grad/(batchSize);
 	};
 
@@ -308,10 +291,10 @@ int main(){
 
 //	dataframe dv0(N.get_coeffs().n_rows,1,"v5assets.csv",false);
 //	vec v0 = dv0.getData();
-	vec v0{N.get_coeffs().n_rows,fill::randn};
+	vec v0{nets[0].get_coeffs().n_rows,fill::randn};
 
 	auto start = std::chrono::high_resolution_clock::now();
-	vec vinf = stochastic_descent(v0,g_st,0.000000000000001,0.01);
+	vec vinf = stochastic_descent(v0,g_st,0.000000000001,0.01);
 	auto finish = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> elapsed = finish - start;
 
@@ -321,13 +304,7 @@ int main(){
 	cout << norm( v0 - vinf)/v0.n_rows <<endl;
 
 	for(int d = 0 ; d != end_train+1-10 ; ++d){
-//		For each available date, we calculate a gradient and then we average
-		N.n(0,0) = 0;
-		for(int s = 1 /* do not use the current index price*/ ; s != nassets ; ++s){
-			N.n(0,s) = Train(d,s);
-		}
-		N.update();
-		cout << N.v(3,0) << ' '<< Train(10+d,0)<<' ';
+		cout << nets[d].v(3,0) << ' '<< Train(10+d,0)<<' ';
 	}
 	cout << "time" << elapsed.count();
 
