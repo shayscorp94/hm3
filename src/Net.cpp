@@ -28,7 +28,16 @@ Net::Net(const std::vector<int> & layers, std::vector<double (*)(const double&)>
 			n_nodes += temp;
 		}
 	}
-	coeffs = vec(n_coeffs,fill::randu);
+	coeffs = vec(n_coeffs, fill::randn);
+	temp = 0;
+	for (vector<int>::const_iterator it = layers.begin(); it != layers.end(); ++it) {
+		if (it == layers.begin()) {
+		}
+		else {
+			coeffs.rows(temp, temp + *it * *(it - 1) - 1) *= sqrt(2/ *(it - 1));
+			temp += *it * *(it - 1);
+		}
+	}
 	nodevals = vec(n_nodes,fill::zeros);
 	nodes = vec(n_nodes,fill::zeros);
 

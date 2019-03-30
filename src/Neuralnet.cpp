@@ -9,8 +9,11 @@
 #include <iostream>
 #include <armadillo>
 #include <algorithm>    // std::random_shuffle
+#include <random>
+
 
 #include "Net.h"
+#include "math.h"
 #include "dataframe.h"
 
 using namespace std;
@@ -29,8 +32,6 @@ double DLrelu(const double & d){
 	return d > 0 ? 1 : 0.01;
 }
 
-
-
 double I(const double & t){
 	return t;
 }
@@ -43,6 +44,12 @@ double Drelu(const double & d){
 	return d > 0 ? 1 : 0;
 }
 
+double sm(const double & t){
+	return (t>10)?t:log(1+exp(t));
+}
+double Dsm(const double & t){
+	return (t>100)?1:exp(t)/(1+exp(t));
+}
 
 inline void grad(const Net & N,Net & G,const double & target){
 
@@ -51,6 +58,7 @@ inline void grad(const Net & N,Net & G,const double & target){
 	const vector<double (*)(const double &)> deriv=G.getFs();
 //	Deal with end node if net is not empty
 	if(n_layers > 0){
+//		cout << N.n(n_layers-1,0) << endl;
 		G.v(n_layers-1,0) = 2*deriv[n_layers-1](N.n(n_layers-1,0))*( N.v(n_layers-1,0)  -target);
 	}
 
@@ -119,12 +127,33 @@ arma::mat acc_descent(const arma::mat& v0 , std::function<arma::mat(const arma::
 
 }
 
+arma::mat stochastic_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat&,mt19937 &)> & grad,const double & eth,const double & eps){
+	mat v{v0};
+	const int maxIt{10000};
+	mt19937 gen;
+	mat g = grad(v,gen);
+
+	for(int i = 0 ; i != maxIt ; ++i ){
+//		if(norm(g) < eps){
+//			cout << "numit" << i <<' ' << norm(g) <<'\n';
+//			return v;
+//		}
+//		else{
+			v = v-eth*g;
+			g = grad(v,gen);
+//			cout << norm(g) << endl;
+//		}
+	}
+	cout << "reached max it" << norm(g) << '\n';
+	return v;
+}
+
 int main(){
 //	Data processing
 
 	const int nassets{487};
 	const int nlines{756};
-	const double end_train{11};
+	const double end_train{15};
 	dataframe Data{756,nassets,"cleanIndex.csv"};
 	mat Train = Data.getData().rows(0,end_train);
 
@@ -132,8 +161,8 @@ int main(){
 
 //	For layer 0 we will add 0s because we only have 486 assets.
 
-	vector<double (*)(const double &)> fs{I,Lrelu,Lrelu,Lrelu};
-	vector<double (*)(const double &)> ds{One,DLrelu,DLrelu,DLrelu};
+	vector<double (*)(const double &)> fs{I,sm,sm,sm};
+	vector<double (*)(const double &)> ds{One,Dsm,Dsm,Dsm};
 
 
 	Net N = Net(vector<int>{487,250,125,1},fs);
@@ -150,19 +179,44 @@ int main(){
 			N.n(0,s) = Train(d,s);
 		}
 		N.update();
-//		cout <<N.v(3,0)<<endl;
 		grad(N,G,Train(d+10,0));
 		res_grad += G.get_coeffs();
 	}
 //	cout << N.v(3,0)<<endl;
 	return res_grad/(end_train+1-10);
 	};
-	dataframe dv0(N.get_coeffs().n_rows,1,"v0.csv",false);
-	vec v0 = dv0.getData();
-//	vec v0(N.get_coeffs().n_rows,fill::randn);
+
+	std::function<arma::mat(const arma::mat &, mt19937 & )> g_st = [&Train,&N,&G,&res_grad,&end_train](const arma::mat & v, mt19937 & g){
+	uniform_int_distribution<int> Dist(0,end_train-10);
+	const int batchSize{1};
+
+	N.get_coeffs() = v;
+	res_grad.fill(0.);
+	int d{0};
+	for(int i = 0 ; i!= batchSize ; ++i){
+		d = Dist(g);
+//		For each available date, we calculate a gradient and then we average
+		N.n(0,0) = 0;
+		for(int s = 1 /* do not use the current index price*/ ; s != nassets ; ++s){
+			N.n(0,s) = Train(d,s);
+		}
+		N.update();
+		grad(N,G,Train(d+10,0));
+		res_grad += G.get_coeffs();
+	}
+//	cout << N.v(3,0)<<endl;
+	return res_grad/(batchSize);
+	};
+
+
+
+
+//	dataframe dv0(N.get_coeffs().n_rows,1,"v1.csv",false);
+//	vec v0 = dv0.getData();
+	vec v0(N.get_coeffs().n_rows,fill::randn);
 
 	auto start = std::chrono::high_resolution_clock::now();
-	vec vinf = grad_descent(v0,g,0.00000000001,0.01);
+	vec vinf = stochastic_descent(v0,g_st,0.000000000001,0.01);
 	auto finish = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> elapsed = finish - start;
 
@@ -173,9 +227,9 @@ int main(){
 
 	for(int d = 0 ; d != end_train+1-10 ; ++d){
 //		For each available date, we calculate a gradient and then we average
-		N.v(0,0) = 0;
+		N.n(0,0) = 0;
 		for(int s = 1 /* do not use the current index price*/ ; s != nassets ; ++s){
-			N.v(0,s) = Train(d,s);
+			N.n(0,s) = Train(d,s);
 		}
 		N.update();
 		cout << N.v(3,0) << ' '<< Train(10+d,0)<<' ';
