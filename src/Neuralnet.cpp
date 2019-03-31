@@ -77,15 +77,16 @@ inline void grad(const Net & N,Net & G,const double & target){
 
 static const int nassets{487};
 static const int nlines{756};
-static const double end_train{11};
+static const double end_train{100};
 static dataframe Data{756,nassets,"cleanIndex.csv"};
-static mat Train = Data.getData().rows(0,end_train);
+static mat Train = Data.getData().rows(0,end_train+0);
+static const int batchSize{1};
 
 
-vector<double (*)(const double &)> fs{I,Lrelu,Lrelu,Lrelu};
-vector<double (*)(const double &)> ds{One,DLrelu,DLrelu,DLrelu};
+vector<double (*)(const double &)> fs{I,Lrelu,Lrelu,Lrelu,Lrelu};
+vector<double (*)(const double &)> ds{One,DLrelu,DLrelu,DLrelu,DLrelu};
 vector<Net> nets;
-Net G = Net(vector<int>{487,250,125,1},ds); /* we do not care of the target we just want the structure*/
+Net G = Net(vector<int>{487,250,125,125,1},ds); /* we do not care of the target we just want the structure*/
 vec res_grad = vec(G.get_coeffs().n_rows,fill::zeros);
 
 arma::mat g(const arma::mat & v){
@@ -173,18 +174,17 @@ arma::mat acc_descent(const arma::mat& v0 , std::function<arma::mat(const arma::
 
 arma::mat stochastic_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat&,mt19937 &)> & grad,const double & etha,const double & eps){
 	mat v{v0};
-	const int maxIt{1000};
+	const int maxIt{1};
 	mt19937 gen;
+	mt19937 genB;
+	uniform_int_distribution<int> Dist(0,::end_train-10);
 	mat g = grad(v,gen);
 	double eth = etha;
 	double lmin = 0;
 	double min = -1 ;
 	double lin = 0.1;
 	double err = 0;
-	vector<double (*)(const double &)> fs{I,Lrelu,Lrelu,Lrelu};
-	Net N = Net(vector<int>{487,250,125,1},fs);
-
-
+	int d{0};
 
 	for(int i = 0 ; i != maxIt ; ++i ){
 		if(norm(g) < eps){
@@ -197,15 +197,12 @@ arma::mat stochastic_descent(const arma::mat& v0, std::function<arma::mat(const 
 			lin = 0.1;
 			for(int j = 0 ; j != 3 ; ++j){
 				err = 0;
-				N.get_coeffs() = v-eth*lin*g;
 
-				for(int d = 0 ; d != ::end_train+1-10 ; ++d){
-				N.n(0,0) = 0;
-				for(int s = 1 /* do not use the current index price*/ ; s != nassets ; ++s){
-					N.n(0,s) = Train(0,s);
-				}
-				N.update();
-				err += pow(N.v(4-1,0)-Train(10,0),2);
+				for(int k = 0 ; k != batchSize ; ++k){
+				d = Dist(genB);
+				nets[d].get_coeffs() = v-eth*lin*g;
+				nets[d].update();
+				err += pow(nets[d].v(4-1,0)-Train(10,0),2);
 				}
 
 				if( min == -1 or min > err){
@@ -217,11 +214,13 @@ arma::mat stochastic_descent(const arma::mat& v0, std::function<arma::mat(const 
 			}
 			eth = lmin*eth;
 //			cout << lmin <<endl;
+
 			v = v-eth*g;
 
 
 			g = grad(v,gen);
-//			cout << norm(g) << endl;
+			if(i % 100 == 0){
+			cout <<std::setprecision(20) << norm(g) << '\n'; }
 		}
 	}
 	cout << "reached max it" << norm(g) << '\n';
@@ -249,7 +248,7 @@ int main(){
 	nets.reserve(::end_train+1-10);
 	for(int d = 0 ; d != ::end_train+1-10 ; ++d){
 	//		For each available date, we calculate a gradient and then we average
-		nets[d] = Net(vector<int>{487,250,125,1},fs);
+		nets.push_back(Net(vector<int>{487,250,125,125,1},fs));
 		nets[d].n(0,0) = 0;
 		for(int s = 1 /* do not use the current index price*/ ; s != nassets ; ++s){
 			nets[d].n(0,s) = Train(d,s);
@@ -272,10 +271,10 @@ int main(){
 
 	std::function<arma::mat(const arma::mat &, mt19937 & )> g_st = [&](const arma::mat & v, mt19937 & g){
 	uniform_int_distribution<int> Dist(0,::end_train-10);
-	const int batchSize{2};
+//	const int batchSize{2};
 	res_grad.fill(0.);
 	int d{0};
-	for(int i = 0 ; i!= batchSize ; ++i){
+	for(int i = 0 ; i!= ::batchSize ; ++i){
 		d = Dist(g);
 //		cout << d<<endl;
 		::nets[d].get_coeffs() = v;
@@ -283,30 +282,34 @@ int main(){
 		grad(nets[d],G,::Train(d+10,0));
 		res_grad += G.get_coeffs();
 	}
-	return res_grad/(batchSize);
+	return res_grad/(::batchSize);
 	};
 
 
 
 
-//	dataframe dv0(N.get_coeffs().n_rows,1,"v5assets.csv",false);
-//	vec v0 = dv0.getData();
-	vec v0{nets[0].get_coeffs().n_rows,fill::randn};
+	dataframe dv0(nets[0].get_coeffs().n_rows,1,"/Users/oliv/Documents/ColumbiaMSOR/IEOR4500/hm3/goodOne.csv",false);
+	vec v0 = dv0.getData();
+//	vec v0{nets[0].get_coeffs().n_rows,fill::randn};
+//	vec v0 = nets[0].get_coeffs();
 
-	auto start = std::chrono::high_resolution_clock::now();
-	vec vinf = stochastic_descent(v0,g_st,0.000000000001,0.01);
-	auto finish = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> elapsed = finish - start;
 
-	dataframe initVec{vinf};
-	initVec.write_csv("v1.csv");
+//	auto start = std::chrono::high_resolution_clock::now();
+//	vec vinf = stochastic_descent(v0,g_st,0.000000000001,0.01);
+//	auto finish = std::chrono::high_resolution_clock::now();
+//	std::chrono::duration<double> elapsed = finish - start;
+//
+//	dataframe initVec{vinf};
+//	initVec.write_csv("v1.csv");
 
-	cout << norm( v0 - vinf)/v0.n_rows <<endl;
-
+//	cout << norm( v0 - vinf)/v0.n_rows <<endl;
+	cout << "Prediciton   Real Val"<<'\n';
 	for(int d = 0 ; d != end_train+1-10 ; ++d){
-		cout << nets[d].v(3,0) << ' '<< Train(10+d,0)<<' ';
+		nets[d].get_coeffs() = v0;
+		nets[d].update();
+		cout << nets[d].v(3,0) << "           "<< Train(10+d,0)<<'\n';
 	}
-	cout << "time" << elapsed.count();
+//	cout << "time" << elapsed.count();
 
 
 	return 0;

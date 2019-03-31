@@ -118,7 +118,7 @@ void dataframe::write_csv(const std::string& filename) {
 	    	for(int j = 0 ; j != m-1 ; ++j){
 	    		myfile <<std::setprecision(20)<< data(i,j) <<',';
 	    	}
-	    	myfile <<std::setprecision(20)<< data(i,m-1)<<'\n';
+	    	myfile <<std::setprecision(40)<< data(i,m-1)<<'\n';
 	    }
 	    myfile.close();
 	  }
