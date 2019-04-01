@@ -7,6 +7,7 @@
 
 #include "Net.h"
 #include "math.h"
+#include <random>
 using namespace std;
 using namespace arma;
 
@@ -29,14 +30,30 @@ Net::Net(const std::vector<int> & layers, std::vector<double (*)(const double&)>
 			n_nodes += temp;
 		}
 	}
-	coeffs = vec(n_coeffs, fill::randn);
+//	coeffs = vec(n_coeffs, fill::randn);
+////	cout << coeffs(0)<<endl;
+//	temp = 0;
+//	for (vector<int>::const_iterator it = layers.begin(); it != layers.end(); ++it) {
+//		if (it == layers.begin()) {
+//		}
+//		else {
+//			coeffs.rows(temp, temp + *it * *(it - 1) - 1) *= sqrt(2./ *(it - 1));
+////			cout << 1/ *(it - 1) << endl;
+//			temp += *it * *(it - 1);
+//		}
+//	}
+	coeffs = vec(n_coeffs, fill::zeros);
+	mt19937 g;
+	std::normal_distribution<double> d;
 //	cout << coeffs(0)<<endl;
 	temp = 0;
 	for (vector<int>::const_iterator it = layers.begin(); it != layers.end(); ++it) {
 		if (it == layers.begin()) {
 		}
 		else {
-			coeffs.rows(temp, temp + *it * *(it - 1) - 1) *= sqrt(2./ *(it - 1));
+			for(int i = temp ; i != temp + *it * *(it - 1) ;++i ){
+			coeffs(i) = d(g)*sqrt(2./ *(it - 1));
+			}
 //			cout << 1/ *(it - 1) << endl;
 			temp += *it * *(it - 1);
 		}
