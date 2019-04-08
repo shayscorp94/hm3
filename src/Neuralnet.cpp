@@ -77,10 +77,10 @@ inline void grad(const Net & N,Net & G,const double & target){
 
 static const int nassets{487};
 static const int nlines{756};
-static const double end_train{200};
+static const double end_train{10};
 static dataframe Data{756,nassets,"cleanIndex.csv"};
 static mat Train = Data.getData().rows(0,end_train+0);
-static const int batchSize{2};
+static const int batchSize{1};
 
 
 vector<double (*)(const double &)> fs{I,Lrelu,Lrelu,Lrelu};
@@ -100,28 +100,6 @@ for(int d = 0 ; d != end_train+1-10 ; ++d){
 return res_grad/(end_train+1-10);
 };
 
-
-//arma::mat grad_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat &)> & grad,const double & etha,const double & eps){
-//	mat v{v0};
-//	mat g = grad(v);
-////	double old_n = norm(g);
-//	double eth = etha;
-////	double temp = old_n;
-//	const int maxIt{300};
-//	for(int i = 0 ; i != maxIt ; ++i ){
-//		if(norm(g) < eps){
-//			cout << "numit" << i <<' ' << norm(g) <<'\n';
-//			return v;
-//		}
-//		else{
-//			v = v-eth*g;
-//			g = grad(v);
-////			cout << "grad" << norm(g) << endl;
-//		}
-//	}
-//	cout << "reached max it" << norm(g) << '\n';
-//	return v;
-//}
 
 arma::mat grad_descent(const arma::mat & v0, arma::mat (& grad) (const arma::mat &), const double & etha,const double & eps){
 	mat v{v0};
@@ -174,7 +152,7 @@ arma::mat acc_descent(const arma::mat& v0 , std::function<arma::mat(const arma::
 
 arma::mat stochastic_descent(const arma::mat& v0, std::function<arma::mat(const arma::mat&,mt19937 &)> & grad,const double & etha,const double & eps){
 	mat v{v0};
-	const int maxIt{1500000};
+	const int maxIt{400};
 	mt19937 gen;
 	mt19937 genB;
 	uniform_int_distribution<int> Dist(0,::end_train-10);
@@ -230,22 +208,6 @@ arma::mat stochastic_descent(const arma::mat& v0, std::function<arma::mat(const 
 }
 
 int main(){
-//	Data processing
-
-//	const int nassets{487};
-//	const int nlines{756};
-//	const double end_train{10};
-//	dataframe Data{756,nassets,"cleanIndex.csv"};
-//	mat Train = Data.getData().rows(0,end_train);
-
-
-//	Define fully connected neural net : layer0 : 500 nodes / layer 1 : 250  nodes / layer 2 : 125 nodes / layer 3 : 1 node
-
-//	For layer 0 we will add 0s because we only have 486 assets.
-
-
-
-//	Net N = Net(vector<int>{487,250,125,1},fs);
 
 	nets.reserve(::end_train+1-10);
 	for(int d = 0 ; d != ::end_train+1-10 ; ++d){
@@ -257,17 +219,6 @@ int main(){
 		}
 		nets[d].update();
 	}
-
-//	std::function<arma::mat(const arma::mat & )> g = [&](const arma::mat & v){
-//	::res_grad.fill(0.);
-//	for(int d = 0 ; d != ::end_train+1-10 ; ++d){
-//		::nets[d].get_coeffs() = v;
-//		::nets[d].update();
-//		grad(::nets[d],::G,::Train(d+10,0));
-//		::res_grad += ::G.get_coeffs();
-//	}
-//	return ::res_grad/(::end_train+1-10);
-//	};
 
 
 
@@ -291,21 +242,21 @@ int main(){
 
 
 
-	dataframe dv0(nets[0].get_coeffs().n_rows,1,"v5.csv",false);
-	vec v0 = dv0.getData();
-//	vec v0{nets[0].get_coeffs().n_rows,fill::randn};
+//	dataframe dv0(nets[0].get_coeffs().n_rows,1,"v5.csv",false);
+//	vec v0 = dv0.getData();
+	vec v0{nets[0].get_coeffs().n_rows,fill::randn};
 //	vec v0 = nets[0].get_coeffs();
 
-//
+
 	auto start = std::chrono::high_resolution_clock::now();
-	vec vinf = stochastic_descent(v0,g_st,0.000000000000000001,0.00000001);
+	vec vinf = stochastic_descent(v0,g_st,0.00000000001,0.00000001);
 	auto finish = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> elapsed = finish - start;
 
 	dataframe initVec{vinf};
 	initVec.write_csv("v6.csv");
 
-//	cout << norm( v0 - vinf)/v0.n_rows <<endl;
+	cout << norm( v0 - vinf)/v0.n_rows <<endl;
 	cout << "Prediciton   Real Val"<<'\n';
 	double err = 0;
 	for(int d = 0 ; d != end_train+1-10 ; ++d){
@@ -315,7 +266,7 @@ int main(){
 		cout << nets[d].v(3,0) << "           "<<Train(d+10,0)<<'\n';
 	}
 	cout << err/( end_train+1-10);
-	cout << "time" << elapsed.count();
+//	cout << "time" << elapsed.count();
 
 
 	return 0;
